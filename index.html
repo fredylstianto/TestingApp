@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Input Setoran</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background: #f9f9f9;
+      }
+
+      h1,
+      h2 {
+        color: #333;
+      }
+
+      form {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        margin-bottom: 30px;
+      }
+
+      label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+
+      select,
+      input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+
+      button {
+        margin-top: 15px;
+        padding: 10px 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      .totals,
+      .history {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin-bottom: 30px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      .link-history {
+        display: inline-block;
+        margin-bottom: 20px;
+        text-decoration: none;
+        color: #007bff;
+        font-weight: bold;
+      }
+
+      .link-history:hover {
+        text-decoration: underline;
+      }
+
+      #totalAll {
+        font-weight: bold;
+        font-size: 1.2em;
+        margin-top: 10px;
+        color: #222;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Input Setoran</h1>
+    <a href="history.html" class="link-history">Lihat Riwayat Setoran Lengkap &raquo;</a>
+    <form id="depositForm">
+      <label for="name">Nama:</label>
+      <select id="name" required>
+        <option value="" disabled selected>Pilih nama</option>
+        <option value="Herman">Herman</option>
+        <option value="Rudi">Rudi</option>
+        <option value="Dai">Dai</option>
+        <option value="Fredy">Fredy</option>
+      </select>
+      <label for="amount">Jumlah Uang (Rp):</label>
+      <input type="number" id="amount" min="1" required placeholder="Masukkan jumlah setoran" />
+      <button type="submit">Setor</button>
+    </form>
+    <div class="totals">
+      <h2>Total Setoran Per Nama</h2>
+      <table id="totalsTable">
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Total Setoran (Rp)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Herman</td>
+            <td id="total-Herman">0</td>
+          </tr>
+          <tr>
+            <td>Rudi</td>
+            <td id="total-Rudi">0</td>
+          </tr>
+          <tr>
+            <td>Dai</td>
+            <td id="total-Dai">0</td>
+          </tr>
+          <tr>
+            <td>Fredy</td>
+            <td id="total-Fredy">0</td>
+          </tr>
+        </tbody>
+      </table>
+      <div id="totalAll">Total Semua Setoran: Rp 0</div>
+    </div>
+    <div class="history">
+      <h2>Riwayat Setoran Terbaru</h2>
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Jumlah (Rp)</th>
+            <th>Tanggal & Waktu</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDgzH0ZCMCkQ4K4LrHpnY2bv9Nju7IOZtA",
+        authDomain: "appsetoran.firebaseapp.com",
+        projectId: "appsetoran",
+        storageBucket: "appsetoran.firebasestorage.app",
+        messagingSenderId: "853309222646",
+        appId: "1:853309222646:web:27e0fd851e220384a486d7"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+      const depositForm = document.getElementById('depositForm');
+      const historyTableBody = document.querySelector('#historyTable tbody');
+      const totals = {
+        Herman: 0,
+        Rudi: 0,
+        Dai: 0,
+        Fredy: 0
+      };
+      const totalAllElem = document.getElementById('totalAll');
+
+      function formatRupiah(number) {
+        return number.toLocaleString('id-ID');
+      }
+
+      function updateTotalsUI() {
+        let totalAll = 0;
+        for (const name in totals) {
+          document.getElementById(`total-${name}`).textContent = formatRupiah(totals[name]);
+          totalAll += totals[name];
+        }
+        totalAllElem.textContent = `Total Semua Setoran: Rp ${formatRupiah(totalAll)}`;
+      }
+
+      function loadDeposits() {
+        db.collection('deposits').orderBy('timestamp', 'desc').limit(20).get().then(snapshot => {
+          for (const name in totals) {
+            totals[name] = 0;
+          }
+          historyTableBody.innerHTML = '';
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const date = data.timestamp.toDate();
+            const dateString = date.toLocaleString('id-ID', {
+              dateStyle: 'short',
+              timeStyle: 'short'
+            });
+            if (totals.hasOwnProperty(data.name)) {
+              totals[data.name] += data.amount;
+            }
+            const tr = document.createElement('tr');
+            tr.innerHTML = ` 
+		
+			<td>${data.name}</td>
+			<td>${formatRupiah(data.amount)}</td>
+			<td>${dateString}</td> `;
+            historyTableBody.appendChild(tr);
+          });
+          updateTotalsUI();
+        }).catch(error => {
+          console.error("Error loading deposits: ", error);
+        });
+      }
+      depositForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const name = depositForm.name.value;
+        const amount = parseInt(depositForm.amount.value);
+        if (!name || !amount || amount <= 0) {
+          alert('Mohon isi nama dan jumlah setoran dengan benar.');
+          return;
+        }
+        db.collection('deposits').add({
+          name: name,
+          amount: amount,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+          depositForm.reset();
+          loadDeposits();
+        }).catch(error => {
+          console.error("Error adding deposit: ", error);
+          alert('Gagal menyimpan setoran. Silakan coba lagi.');
+        });
+      });
+      loadDeposits();
+    </script>
+  </body>
+</html>

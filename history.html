@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Riwayat Setoran Lengkap</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background: #f9f9f9;
+      }
+
+      h1 {
+        color: #333;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        text-decoration: none;
+        color: #007bff;
+        font-weight: bold;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      tbody tr:hover {
+        background-color: #f9f9f9;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Riwayat Setoran Lengkap</h1>
+    <a href="index.html" class="back-link">&laquo; Kembali ke Input Setoran</a>
+    <table>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Jumlah (Rp)</th>
+          <th>Tanggal & Waktu</th>
+        </tr>
+      </thead>
+      <tbody id="fullHistoryBody"></tbody>
+    </table>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDgzH0ZCMCkQ4K4LrHpnY2bv9Nju7IOZtA",
+        authDomain: "appsetoran.firebaseapp.com",
+        projectId: "appsetoran",
+        storageBucket: "appsetoran.firebasestorage.app",
+        messagingSenderId: "853309222646",
+        appId: "1:853309222646:web:27e0fd851e220384a486d7"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+      const fullHistoryBody = document.getElementById('fullHistoryBody');
+
+      function formatRupiah(number) {
+        return number.toLocaleString('id-ID');
+      }
+
+      function loadFullHistory() {
+        db.collection('deposits').orderBy('timestamp', 'desc').get().then(snapshot => {
+          fullHistoryBody.innerHTML = '';
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const date = data.timestamp ? data.timestamp.toDate() : new Date();
+            const dateString = date.toLocaleString('id-ID', {
+              dateStyle: 'short',
+              timeStyle: 'short'
+            });
+            const tr = document.createElement('tr');
+            tr.innerHTML = ` 
+			<td>${data.name}</td>
+			<td>${formatRupiah(data.amount)}</td>
+			<td>${dateString}</td> `;
+            fullHistoryBody.appendChild(tr);
+          });
+        }).catch(error => {
+          console.error("Error loading full history: ", error);
+        });
+      }
+      loadFullHistory();
+    </script>
+  </body>
+</html>
